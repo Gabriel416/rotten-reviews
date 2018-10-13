@@ -130,6 +130,14 @@ const getAudienceReviews = async (slug, reviewCount, isTV = false) => {
         return reviews.slice(0, wantedAmountOfReviews)
       })
     )
+    .then(reviews => {
+      return {
+        slug: slug,
+        reviewCount: wantedAmountOfReviews,
+        url: movieUrl(slug, 1, isTV),
+        reviews: reviews,
+      }
+    })
 }
 
 module.exports = { getAudienceReviews }
