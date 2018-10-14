@@ -2,7 +2,7 @@ const Axios = require('axios').default
 const cheerio = require('cheerio')
 
 module.exports = {
-  getAudienceReviews: (slug, pages) => {
+  getAudienceReviews: (slug, pages, stars) => {
     const movieUrl = (slug, pages) =>
       `https://www.rottentomatoes.com/m/${slug}/reviews/?page=${pages}&type=user&sort=`
 
@@ -18,19 +18,25 @@ module.exports = {
         Axios.spread((...requests) => {
           const reviews = []
           requests.forEach(request => {
-            reviews.push.apply(reviews, module.exports.scrapePage(request.data))
+            reviews.push.apply(reviews, module.exports.scrapePage(request.data, stars.toString()))
           })
           return reviews
         })
       )
   },
-  scrapePage: data => {
+  scrapePage: (data, starsToFilter) => {
     const $ = cheerio.load(data)
     const reviews = []
 
     $('.review_table_row').each((i, element) => {
-      const stars = $(element).find('.glyphicon.glyphicon-star').length
+      let stars = $(element).find('.glyphicon.glyphicon-star').length
       const hasHalf = $(element).find('span:contains("½")').length ? 0.5 : 0
+
+      stars += hasHalf;
+
+      if (starsToFilter && stars != starsToFilter) {
+        return;
+      };
 
       const [reviewer, date, review] = [
         '.bold.unstyled.articleLink',
@@ -44,10 +50,10 @@ module.exports = {
       )
 
       reviews.push({
-        reviewer: reviewer,
-        date: date,
-        stars: stars + hasHalf,
-        review: review,
+        reviewer,
+        date,
+        stars,
+        review,
       })
     })
 
