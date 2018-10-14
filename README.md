@@ -1,11 +1,16 @@
+<div align="center">
+
 # rotten-reviews
 
-Scrape audience reviews from Rotten Tomatoes 🍅
+Scrape audience reviews from [Rotten Tomatoes](https://www.rottentomatoes.com) 🍅
+
+![rotten-reviews](https://media.giphy.com/media/101t9QwTM6y5oc/giphy.gif)
+
+</div>
 
 ## Description
 
-This Node.js scrapes Rotten Tomatoes audience reviews pages and scrapes the
-contents by getting the reviewer name, date, total stars, and review excerpt.
+This Node.js package scrapes [Rotten Tomatoes](https://www.rottentomatoes.com) audience reviews pages and scrapes the contents by getting the reviewer name, date, total stars, and review excerpt.
 
 Future features are listed on the [roadmap](#roadmap).
 
@@ -15,40 +20,40 @@ Future features are listed on the [roadmap](#roadmap).
 
 ## Usage
 
-## Running from binaries
+### Running from binaries or global install
 
 All binaries are compiled using [`pkg`](https://github.com/zeit/pkg) using Node.js `v8.12.0`.
-See the [releases page](https://github.com/grikomsn/rotten-reviews/releases) for the binaries' download links.
-
-Example running the binaries on `darwin`:
-
-```console
-$ ./rotten-reviews-macos
-Usage: rotten-reviews [options] <movie> <pages>
-
-scrapes audience movie reviews from rotten tomatoes
-
-Options:
-  --csv       exports to csv (defaults to json)
-  -h, --help  output usage information
-```
-
-## Running from global install (`npm` or `yarn`)
-
-- Install package globally by running:
+See the [releases page](https://github.com/grikomsn/rotten-reviews/releases) for the binaries' download links. `rotten-reviews` can also be installed using `npm` or `yarn` globally by running:
 
 ```sh
 # install using npm
 npm -g i rotten-reviews
 
-# install using npm
+# install using yarn
 yarn global add rotten-reviews
 ```
 
-- Run `rotten-reviews` with the `movieSlug` and `pages` parameter, for example:
+```console
+$ rotten-reviews
+Usage: rotten-reviews [options] <title> <count>
+
+Scrapes audience movie or tv show reviews from rotten tomatoes
+
+Examples:
+  rotten-reviews venom_2018 100
+  rotten-reviews venom_2018 100 --csv
+  rotten-reviews doctor_who/s11 10 --tv   (include the season # for tv shows)
+
+Options:
+  --csv       exports to csv (defaults to json)
+  --tv        search as a tv show (defaults to movie)
+  -h, --help  output usage information
+```
+
+Here's an example for scraping two [Venom (2018)](https://www.rottentomatoes.com/m/venom_2018/reviews) reviews:
 
 ```console
-$ rotten-reviews venom_2018 25
+$ rotten-reviews venom_2018 2
 [
   {
     "reviewer": "Melissa B",
@@ -56,13 +61,8 @@ $ rotten-reviews venom_2018 25
     "stars": 5,
     "review": "I loved it! Didn't expect to like it as much as I did.Some really funny parts and amazing action scenes. Ignore the critics, go see it!"
   },
-  {
-    "reviewer": "Andrew O",
-    "date": "October 11, 2018",
-    "stars": 2.5,
-    "review": "Despite a surprising amount of humor and chemistry between Venom and his host, Venom is mostly inept as both an action and a horror film, with only the slightest amount of soul peering through the thoughtful characterization of Hardy's role. This is a movie you can enjoy while watching and forget the moment you're done."
-  },
-...
+  ...
+]
 ```
 
 ### Running from package
@@ -73,7 +73,7 @@ $ rotten-reviews venom_2018 25
   # install using npm
   npm i rotten-reviews
 
-  # install using npm
+  # install using yarn
   yarn add rotten-reviews
   ```
 
@@ -83,37 +83,34 @@ $ rotten-reviews venom_2018 25
   // import the package
   const RottenReviews = require('rotten-reviews')
 
-  // https://www.rottentomatoes.com/m/venom_2018/reviews
+  // https://www.rottentomatoes.com/m/venom_2018
+  //                                  ^^^^^^^^^^
   const movieSlug = 'venom_2018'
 
-  // get 500 reviews (20 per page * 25)
-  const pages = 25
+  // obtain 3 audience reviews
+  const reviewCount = 3
 
-  // get using the getAudienceReviews function
-  RottenReviews.getAudienceReviews(movieSlug, pages).then(reviews => {
-    console.log(JSON.stringify(reviews, null, 4))
-  })
+  // determines whether is a tv show or not,
+  // optional and defaults to false
+  const isTV = false
+
+  // scrapes the review pages and returns via promise
+  RottenReviews.getAudienceReviews(movieSlug, reviewCount, isTV).then(
+    reviews => {
+      console.log(JSON.stringify(reviews, null, 3))
+    }
+  )
   ```
 
-- Here's the result of the source code above:
-
-  ```json
-  [
-      {
-          "reviewer": "Melissa B",
-          "date": "October 11, 2018",
-          "stars": 5,
-          "review": "I loved it! Didn't expect to like it as much as I did.Some really funny parts and amazing action scenes. Ignore the critics, go see it!"
-      },
-      ...
-  ]
-  ```
+You can view more examples by opening the [examples folder](/examples).
 
 ## Roadmap
 
-- [ ] Scrape defined number of reviews instead of pages
-- [ ] Error handling if movie page doesn't exist
-- [ ] Include scraping TV series reviews
+### [Version 1.1.0](https://github.com/grikomsn/rotten-reviews/milestone/1)
+
+- [x] Scrape defined number of reviews instead of pages ([#6](https://github.com/grikomsn/rotten-reviews/pull/6))
+- [x] Error handling if movie page doesn't exist ([#2](https://github.com/grikomsn/rotten-reviews/pull/2))
+- [x] Include scraping TV series reviews ([#8](https://github.com/grikomsn/rotten-reviews/pull/8))
 
 ## Credits
 

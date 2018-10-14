@@ -1,62 +1,143 @@
 const Axios = require('axios').default
-const cheerio = require('cheerio')
+const Cheerio = require('cheerio')
 
-module.exports = {
-  getAudienceReviews: (slug, pages, stars) => {
-    const movieUrl = (slug, pages) =>
-      `https://www.rottentomatoes.com/m/${slug}/reviews/?page=${pages}&type=user&sort=`
+/**
+ * Returns the URL for the given parameters
+ *
+ * @param {String} slug Identifier for the movie ot TV show
+ * @param {Number} page Number or page(s) to be retrieved
+ * @param {Boolean} isTV State whether given slug is a TV show or not
+ */
+const movieUrl = (slug, page, isTV = false) => {
+  const showType = isTV ? 'tv' : 'm'
+  return `https://www.rottentomatoes.com/${showType}/${slug}/reviews/?page=${page}&type=user`
+}
 
-    return new Promise(resolve => {
-      const pageRequests = []
-      for (let i = 0; i < pages; i++) {
-        pageRequests.push(Axios.get(movieUrl(slug, i + 1)))
-      }
-      resolve(pageRequests)
+/**
+ * Fetches the review page for the given parameters
+ *
+ * @param {String} slug Identifier for the movie ot TV show
+ * @param {Number} page Number or page(s) to be retrieved
+ * @param {Boolean} isTV State whether given slug is a TV show or not
+ */
+const getPage = (slug, page, isTV) => Axios.get(movieUrl(slug, page, isTV))
+
+/**
+ * Scrapes audience reviews (reviewer name, date, stars, and review excerpt)
+ *
+ * @param {String} data HTML data fetched from getPage method
+ * @param {Number} starsToFilter Number of stars to filter by
+ */
+const scrapePage = (data, starsToFilter) => {
+  const $ = Cheerio.load(data)
+  const reviews = []
+
+  $('.review_table_row').each((i, element) => {
+    let stars = $(element).find('.glyphicon.glyphicon-star').length
+    const hasHalf = $(element).find('span:contains("½")').length ? 0.5 : 0
+
+    stars += hasHalf;
+
+    if (starsToFilter && stars != starsToFilter) {
+      return;
+    }
+
+    const [reviewer, date, review] = [
+      '.bold.unstyled.articleLink',
+      '.fr.small.subtle',
+      '.user_review',
+    ].map(classes =>
+      $(element)
+        .find(classes)
+        .text()
+        .trim()
+    )
+
+    reviews.push({
+      reviewer,
+      date,
+      stars,
+      review,
     })
-      .then(pageRequests => Axios.all(pageRequests))
-      .then(
-        Axios.spread((...requests) => {
-          const reviews = []
-          requests.forEach(request => {
-            reviews.push.apply(reviews, module.exports.scrapePage(request.data, stars.toString()))
-          })
-          return reviews
+  })
+
+  return reviews
+}
+
+/**
+ * Fetches audience reviews for the given parameters
+ *
+ * @param {String} slug Identifier for the movie or TV show
+ * @param {Number} reviewCount Number of requested reviews to be given
+ * @param {Number} stars Number of stars to filter by
+ * @param {Boolean} isTV State whether given slug is a TV show or not
+ */
+const getAudienceReviews = async (slug, reviewCount, stars, isTV = false) => {
+  let wantedAmountOfReviews = reviewCount
+  let maxPage = 1
+  let countLastPageReviews = 0
+
+  /**
+   * Retrieves the first page to check the total number of pages
+   */
+  await getPage(slug, maxPage, isTV).then(response => {
+    const $ = Cheerio.load(response.data)
+    const paginatorText = $('.pageInfo').html()
+    maxPage = paginatorText.slice(
+      paginatorText.indexOf('of') + 3,
+      paginatorText.length
+    )
+  })
+
+  /**
+   * Retrieves the number of reviews on the last page
+   */
+  await getPage(slug, maxPage, isTV).then(response => {
+    const $ = Cheerio.load(response.data)
+    countLastPageReviews = $('.review_table_row').length
+  })
+
+  const REVIEWS_PER_PAGE = 20
+  const countReviews = (maxPage - 1) * REVIEWS_PER_PAGE + countLastPageReviews
+
+  /**
+   * Sets the number of reviews to the total of reviews available
+   */
+  if (wantedAmountOfReviews > countReviews) {
+    wantedAmountOfReviews = countReviews
+  }
+
+  return new Promise(resolve => {
+    const pageRequests = []
+
+    for (let i = 1; i <= maxPage; i++) {
+      pageRequests.push(getPage(slug, i, isTV))
+    }
+
+    resolve(pageRequests)
+  })
+    .then(pageRequests => Axios.all(pageRequests))
+    .catch(error => {
+      if (error.response.status == 404)
+        return Promise.reject({
+          status: 404,
+          message:
+            `⚠️  Page not found for '${slug}'. You can check the page manually by opening this link:\n` +
+            movieUrl(slug, page, isTV),
         })
-      )
-  },
-  scrapePage: (data, starsToFilter) => {
-    const $ = cheerio.load(data)
-    const reviews = []
-
-    $('.review_table_row').each((i, element) => {
-      let stars = $(element).find('.glyphicon.glyphicon-star').length
-      const hasHalf = $(element).find('span:contains("½")').length ? 0.5 : 0
-
-      stars += hasHalf;
-
-      if (starsToFilter && stars != starsToFilter) {
-        return;
-      };
-
-      const [reviewer, date, review] = [
-        '.bold.unstyled.articleLink',
-        '.fr.small.subtle',
-        '.user_review',
-      ].map(classes =>
-        $(element)
-          .find(classes)
-          .text()
-          .trim()
-      )
-
-      reviews.push({
-        reviewer,
-        date,
-        stars,
-        review,
+      return Promise.reject({
+        message: `⚠️  An error occured, please try again.`,
       })
     })
-
-    return reviews
-  },
+    .then(
+      Axios.spread((...requests) => {
+        const reviews = []
+        requests.forEach(request => {
+          reviews.push.apply(reviews, scrapePage(request.data, stars.toString()))
+        })
+        return reviews.slice(0, wantedAmountOfReviews)
+      })
+    )
 }
+
+module.exports = { getAudienceReviews }
