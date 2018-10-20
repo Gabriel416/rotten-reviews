@@ -1,34 +1,55 @@
 #!/usr/bin/env node
 
-const Commander = require('commander')
-const Json2CsvParser = require('json2csv').Parser
-const RottenReviews = require('..')
+const columnify = require('columnify')
 
-const Csv = new Json2CsvParser({
-  fields: ['reviewer', 'date', 'stars', 'review'],
-})
+const Commander = require('commander')
+const RottenReviews = require('..')
 
 const description = `Scrapes audience movie or tv show reviews from rotten tomatoes
 
 Examples:
-  rotten-reviews venom_2018 100
-  rotten-reviews venom_2018 100 --csv
+  rotten-reviews venom_2018
+  rotten-reviews venom_2018 --max 10      (sets max entries to 10)
   rotten-reviews doctor_who/s11 10 --tv   (include the season # for tv shows)`
 
 Commander.description(description)
-  .option('--csv', 'exports to csv (defaults to json)')
+  .option('--json', 'exports to json')
   .option('--tv', 'search as a tv show (defaults to movie)')
-  .arguments('<title> <count> <stars>')
-  .action((title, count, stars) => {
-    RottenReviews.getAudienceReviews(title, count, stars, Commander.tv)
+  .option('--max <maximum>', 'set max entries displayed (defaults to 20)', 20)
+  .option('--stars <stars>', 'filter reviews by star rating (1-5)')
+  .arguments('<title>')
+  .action((title) => {
+    RottenReviews.getAudienceReviews(title, Commander.max, Commander.star, Commander.tv)
       .then(reviews => {
-        console.log(
-          Commander.csv ? Csv.parse(reviews) : JSON.stringify(reviews, null, 2)
-        )
+        if (Commander.csv) {
+          return console.log(Csv.parse(reviews));
+        }
+        if (Commander.json) {
+          return console.log(JSON.stringify(reviews, null, 2));
+        }
+        reviews = reviews.map(review => {
+          return {
+            name: `${review.reviewer}\n${review.stars} stars.\n${review.date}`,
+            review: `\n${review.review}\n\n\n\r-`
+          };
+        });
+        const columns = columnify(reviews, {
+          showHeaders: false,
+          preserveNewLines: true,
+          minWidth: 20,
+          config: {
+            review: {
+              maxWidth: 80
+            }
+          }
+        });
+        console.log(columns);
       })
       .catch(error => {
         console.error(error.message)
+        process.exit(1);
       })
+      console.clear()
   })
   .parse(process.argv)
 

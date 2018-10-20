@@ -119,21 +119,22 @@ const getAudienceReviews = async (slug, reviewCount, stars, isTV = false) => {
     .then(pageRequests => Axios.all(pageRequests))
     .catch(error => {
       if (error.response.status == 404)
-        return Promise.reject({
+        throw {
           status: 404,
           message:
             `⚠️  Page not found for '${slug}'. You can check the page manually by opening this link:\n` +
             movieUrl(slug, page, isTV),
-        })
-      return Promise.reject({
+        }
+      throw {
         message: `⚠️  An error occured, please try again.`,
-      })
+      }
     })
     .then(
       Axios.spread((...requests) => {
         const reviews = []
+        stars = stars.toString() || false;
         requests.forEach(request => {
-          reviews.push.apply(reviews, scrapePage(request.data, stars.toString()))
+          reviews.push.apply(reviews, scrapePage(request.data, stars))
         })
         return reviews.slice(0, wantedAmountOfReviews)
       })

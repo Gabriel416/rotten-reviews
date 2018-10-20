@@ -2,25 +2,43 @@
   "name": "rotten-reviews",
   "description": "Scrape audience reviews from Rotten Tomatoes 🍅",
   "version": "1.0.0",
-  "author": {
-    "name": "Griko Nibras",
-    "email": "grikomsn@gmail.com",
-    "url": "https://griko.id"
+  "author": "Griko Nibras <grikomsn@gmail.com> (https://griko.id)",
+  "engines": {
+    "node": ">= 8.12.x",
+    "npm": ">= 6.4.x"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:watch:coverage": "jest test --watch --coverage",
+    "build": "pkg . --out-path ./build"
   },
   "homepage": "https://github.com/grikomsn/rotten-reviews",
   "repository": {
     "type": "url",
-    "url": "https://github.com/grikomsn/rotten-reviews.git"
+    "url": "git+https://github.com/grikomsn/rotten-reviews.git"
   },
   "license": "MIT",
   "dependencies": {
     "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
-    "commander": "^2.19.0",
-    "json2csv": "^4.2.1"
+    "columnify": "^1.5.4",
+    "commander": "^2.19.0"
+  },
+  "devDependencies": {
+    "jest": "^23.6.0",
+    "nock": "^10.0.1",
+    "pkg": "^4.3.4"
   },
   "bin": {
     "rotten-reviews": "./bin/rotten-reviews.js"
   },
-  "main": "index.js"
+  "main": "index.js",
+  "bugs": {
+    "url": "https://github.com/grikomsn/rotten-reviews/issues"
+  },
+  "directories": {
+    "example": "examples"
+  },
+  "keywords": []
 }
